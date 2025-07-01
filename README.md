@@ -139,6 +139,15 @@ pip install -r requirements.txt
 # Quick test with sample data
 python intent_classifier_transformer.py data/sample_conversations.json
 
+# Or test with Python API
+python -c "
+from intent_classifier_transformer import TransformerIntentClassifier
+classifier = TransformerIntentClassifier()
+sample = [{'sender': 'user', 'text': 'I need help'}]
+result = classifier.classify_intent(sample)
+print(f'Intent: {result[\"predicted_intent\"]} (confidence: {result[\"confidence\"]:.2f})')
+"
+
 # Expected output: JSON file with predictions in results/ directory
 ```
 
@@ -165,9 +174,6 @@ python intent_classifier_transformer.py input.json \
     --output-json results/my_analysis.json \
     --output-csv results/my_analysis.csv \
     --batch-size 10
-
-# Run interactive demonstration
-python run_demos.py
 ```
 
 #### Python API
@@ -687,7 +693,6 @@ graph TD
     C --> F
     D --> B
     E --> B
-    G[run_demos.py] --> A
     H[comprehensive_demo.py] --> A
 ```
 
