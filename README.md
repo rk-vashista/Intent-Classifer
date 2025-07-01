@@ -107,7 +107,7 @@ Input Conversation
 #### 1. Environment Setup
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/rk-vashista/Intent-Classifer.git
 cd NLP
 
 # Create and activate virtual environment
@@ -758,7 +758,7 @@ def collect_feedback(conversation_id, predicted_intent, actual_intent, user_feed
 #### 3. Code Contributions
 ```bash
 # Development workflow
-git clone <repository>
+git clone https://github.com/rk-vashista/Intent-Classifer.git
 cd NLP
 git checkout -b feature/your-feature
 
