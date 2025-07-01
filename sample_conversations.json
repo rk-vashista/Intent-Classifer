@@ -1,0 +1,52 @@
+[
+  {
+    "conversation_id": "conv_001",
+    "messages": [
+      {"sender": "user", "text": "Hi, I'm looking for a 2BHK in Dubai"},
+      {"sender": "agent", "text": "Great! Any specific area in mind?"},
+      {"sender": "user", "text": "Preferably Marina or JVC"},
+      {"sender": "agent", "text": "What's your budget?"},
+      {"sender": "user", "text": "Max 120k. Can we do a site visit this week?"}
+    ]
+  },
+  {
+    "conversation_id": "conv_002", 
+    "messages": [
+      {"sender": "user", "text": "Hello, I saw your ad for the iPhone 15"},
+      {"sender": "agent", "text": "Yes, we have it in stock. Which color are you interested in?"},
+      {"sender": "user", "text": "Blue. What are the specifications?"},
+      {"sender": "agent", "text": "It has 128GB storage, A17 chip, and 48MP camera"},
+      {"sender": "user", "text": "Does it support 5G and wireless charging?"}
+    ]
+  },
+  {
+    "conversation_id": "conv_003",
+    "messages": [
+      {"sender": "user", "text": "Hi, I bought a laptop from you last week"},
+      {"sender": "agent", "text": "Hello! How can I help you?"},
+      {"sender": "user", "text": "The screen is flickering and making strange noises"},
+      {"sender": "agent", "text": "I'm sorry to hear that. Can you try restarting it?"},
+      {"sender": "user", "text": "I tried that already. It's still not working properly"}
+    ]
+  },
+  {
+    "conversation_id": "conv_004",
+    "messages": [
+      {"sender": "user", "text": "Hey, the price you quoted for the wedding package is too high"},
+      {"sender": "agent", "text": "I understand your concern. What budget did you have in mind?"},
+      {"sender": "user", "text": "I was thinking more like 50k instead of 80k"},
+      {"sender": "agent", "text": "Let me see what I can do. We might be able to adjust some services"},
+      {"sender": "user", "text": "That would be great. Can you give me a revised quote?"}
+    ]
+  },
+  {
+    "conversation_id": "conv_005",
+    "messages": [
+      {"sender": "user", "text": "Hi, I submitted my loan application last month"},
+      {"sender": "agent", "text": "Yes, let me check the status for you"},
+      {"sender": "user", "text": "I haven't heard back yet. What's the update?"},
+      {"sender": "agent", "text": "Your application is under review by our underwriting team"},
+      {"sender": "user", "text": "When can I expect a decision?"}
+    ]
+  }
+]
