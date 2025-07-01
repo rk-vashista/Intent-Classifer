@@ -102,11 +102,11 @@ class SemanticSimilarityClassifier(BaseModel):
     def __init__(self):
         super().__init__("all-MiniLM-L6-v2")
         self.intent_descriptions = {
-            "Book Appointment": "Customer wants to schedule, book, or arrange a meeting, appointment, visit, or call. They are looking for available time slots, dates, or seeking to set up face-to-face interactions.",
-            "Support Request": "Customer needs help with a problem, technical issue, malfunction, or difficulty. They are seeking assistance, troubleshooting, customer service, or reporting something that isn't working properly.",
-            "Pricing Negotiation": "Customer is discussing, negotiating, or inquiring about costs, prices, budget, discounts, deals, or financial aspects. They want pricing information or are trying to get better rates.",
-            "General Inquiry": "Customer is asking general questions, seeking basic information, making casual inquiries, or requesting standard details about services, processes, or policies.",
-            "Product Information": "Customer wants detailed information about products, features, specifications, availability, models, options, or technical details about what's being offered."
+            "Book Appointment": "Customer wants to schedule, book, arrange a meeting, appointment, site visit, viewing, or face-to-face interaction. They are asking about availability, time slots, or when they can meet in person.",
+            "Support Request": "Customer has a technical problem, issue, malfunction, or something broken that needs fixing. They recently purchased something that is defective, flickering, making strange noises, or not working properly. They need help with troubleshooting, repairs, warranty claims, or customer service for products they bought.",
+            "Pricing Negotiation": "Customer is discussing, negotiating, or complaining about costs, prices, budget, or seeking discounts. They want better rates, revised quotes, or are trying to reduce the price.",
+            "General Inquiry": "Customer is asking about status updates, application progress, process timelines, or general procedural questions. They want to know about waiting times or current status of submitted requests.",
+            "Product Information": "Customer wants detailed technical specifications, features, capabilities, compatibility, or product details. They are asking about models, colors, storage, performance, or technical aspects of products."
         }
     
     def load_model(self):
@@ -164,23 +164,31 @@ class ConversationContextClassifier(BaseModel):
         self.context_patterns = {
             "Book Appointment": [
                 "when can", "available", "schedule", "visit", "meet", "appointment",
-                "book", "arrange", "time", "date", "calendar", "slot"
+                "book", "arrange", "time", "date", "calendar", "slot", "site visit",
+                "viewing", "come see", "show me", "can we meet"
             ],
             "Support Request": [
                 "help", "problem", "issue", "broken", "not working", "error",
-                "trouble", "fix", "support", "assist", "malfunction"
+                "trouble", "fix", "support", "assist", "malfunction", "flickering",
+                "strange noises", "doesn't work", "bought", "purchased", "defective",
+                "warranty", "repair", "replacement", "technical issue", "still not working",
+                "tried that already", "not working properly", "screen is", "making noises",
+                "restart", "restarting", "sorry to hear", "last week", "from you"
             ],
             "Pricing Negotiation": [
                 "price", "cost", "budget", "expensive", "cheap", "discount",
-                "deal", "negotiate", "quote", "payment", "afford"
+                "deal", "negotiate", "quote", "payment", "afford", "too high",
+                "lower price", "better rate", "revised quote", "adjust", "reduce"
             ],
             "General Inquiry": [
-                "information", "tell me", "explain", "how", "what", "where",
-                "general", "question", "inquire", "details"
+                "status", "update", "when can I expect", "how long", "process",
+                "application", "submitted", "waiting", "review", "progress"
             ],
             "Product Information": [
-                "features", "specifications", "specs", "details", "model",
-                "options", "available", "product", "version", "type"
+                "specifications", "specs", "features", "details about", "what are the",
+                "color", "storage", "camera", "chip", "supports", "wireless charging",
+                "5G", "technical details", "model", "options", "available colors",
+                "memory", "processor", "capabilities", "compatibility"
             ]
         }
     

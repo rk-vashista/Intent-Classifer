@@ -48,5 +48,27 @@
       {"sender": "agent", "text": "Your application is under review by our underwriting team"},
       {"sender": "user", "text": "When can I expect a decision?"}
     ]
+  },
+  {
+    "conversation_id": "conv_006",
+    "messages": [
+      {"sender": "user", "text": "Hi, I'm interested in Zeldin for our sales team"},
+      {"sender": "agent", "text": "Great! Zeldin can automatically update your CRM from customer conversations. What channels do you currently use?"},
+      {"sender": "user", "text": "We mainly use WhatsApp and email for customer communication"},
+      {"sender": "agent", "text": "Perfect! Zeldin integrates with both. It monitors conversations in real-time and extracts relevant information automatically"},
+      {"sender": "user", "text": "That sounds interesting. What are the technical specifications and integration requirements?"}
+    ]
+  },
+  {
+    "conversation_id": "conv_007", 
+    "messages": [
+      {"sender": "user", "text": "Hello, I attended your demo yesterday about AI agents"},
+      {"sender": "agent", "text": "Hi! Thanks for attending. How can I help you today?"},
+      {"sender": "user", "text": "I'm having trouble understanding how Zeldin learns from our conversations"},
+      {"sender": "agent", "text": "I can explain that. Zeldin uses AI to analyze conversation patterns and extract key information like contact details, preferences, and deal status"},
+      {"sender": "user", "text": "But our current system isn't capturing leads properly. Can Zeldin fix that?"},
+      {"sender": "agent", "text": "Absolutely! That's exactly what we built it for. It turns unstructured conversations into clean CRM data"},
+      {"sender": "user", "text": "Okay, but I'm still not convinced it will work with our complex sales process"}
+    ]
   }
 ]

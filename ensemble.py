@@ -68,11 +68,11 @@ class AdvancedEnsembleClassifier:
             "Product Information"
         ]
         
-        # Model weights based on expected performance
+        # Model weights based on expected performance - increased semantic weight
         self.model_weights = {
-            "zero-shot": 0.4,
-            "semantic_similarity": 0.35,
-            "context_patterns": 0.25
+            "zero-shot": 0.35,
+            "semantic_similarity": 0.45,  # Increased weight for better similarity matching
+            "context_patterns": 0.20      # Reduced weight due to pattern limitations
         }
         
         # Confidence thresholds for different decision strategies
