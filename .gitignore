@@ -130,13 +130,12 @@ dmypy.json
 
 # Project-specific files
 # Generated output files
-predictions.json
-predictions.csv
-predictions_transformer.json
-predictions_transformer.csv
-final_test.json
-test_*.json
-test_*.csv
+results/predictions*.json
+results/predictions*.csv
+results/modular_test*
+results/final_test*
+results/test_*.json
+results/test_*.csv
 
 # Model cache and downloads (these are large files that get downloaded automatically)
 .cache/
@@ -216,3 +215,7 @@ htmlcov/
 nlp_env/
 intent_env/
 transformer_env/
+
+
+.github/
+scripts/

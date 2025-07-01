@@ -1,34 +1,61 @@
 """
 Multi-Turn Intent Classification System using Transformers
-A system to classify customer intents from WhatsApp-style conversations
-using state-of-the-art transformer models.
+A modular, high-performance system for classifying customer intents from conversations
+using state-of-the-art transformer models with advanced reasoning capabilities.
 """
 
 import json
 import pandas as pd
 from typing import List, Dict, Any
-import torch
-from transformers import (
-    AutoTokenizer, 
-    AutoModelForSequenceClassification, 
-    pipeline,
-    BartForSequenceClassification
-)
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer
 import logging
 from pathlib import Path
 import argparse
 from tqdm import tqdm
+from dataclasses import dataclass
+
+# Import modular components
+from models import ZeroShotClassifier, SemanticSimilarityClassifier, ConversationContextClassifier
+from conversation_processor import ConversationPreprocessor
+from ensemble import AdvancedEnsembleClassifier, EnsembleStrategy
+from reasoning_engine import IntelligentReasoningEngine, ReasoningDepth
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class TransformerIntentClassifier:
-    def __init__(self):
-        # Define the 5 intent categories
+    """
+    Main classifier that orchestrates all modular components for maximum accuracy
+    """
+    
+    def __init__(self, ensemble_strategy: EnsembleStrategy = EnsembleStrategy.ADAPTIVE,
+                 reasoning_depth: ReasoningDepth = ReasoningDepth.COMPREHENSIVE):
+        """
+        Initialize the modular intent classification system
+        
+        Args:
+            ensemble_strategy: Strategy for combining model predictions
+            reasoning_depth: Level of detail in reasoning explanations
+        """
+        logger.info("Initializing Modular Transformer Intent Classification System...")
+        
+        # Initialize all modular components
+        self.conversation_processor = ConversationPreprocessor(
+            max_turns=10, 
+            enable_context_analysis=True
+        )
+        
+        self.ensemble_classifier = AdvancedEnsembleClassifier(strategy=ensemble_strategy)
+        
+        self.reasoning_engine = IntelligentReasoningEngine(reasoning_depth=reasoning_depth)
+        
+        # Initialize transformer models
+        self.models = {
+            "zero_shot": ZeroShotClassifier(),
+            "semantic": SemanticSimilarityClassifier(), 
+            "context": ConversationContextClassifier()
+        }
+        
         self.intent_categories = [
             "Book Appointment",
             "Support Request", 
@@ -37,271 +64,205 @@ class TransformerIntentClassifier:
             "Product Information"
         ]
         
-        # Initialize transformer models
-        self.setup_models()
-        
-        # Define intent descriptions for better semantic matching
-        self.intent_descriptions = {
-            "Book Appointment": "Customer wants to schedule a meeting, appointment, or visit. They are looking for available time slots or dates to meet.",
-            "Support Request": "Customer needs help with a problem, issue, or technical difficulty. They are seeking assistance, troubleshooting, or customer service support.",
-            "Pricing Negotiation": "Customer is discussing costs, prices, discounts, or budget-related concerns. They want pricing information, deals, or are negotiating costs.",
-            "General Inquiry": "Customer is asking general questions or seeking basic information about services, processes, or company policies.",
-            "Product Information": "Customer wants detailed information about products, features, specifications, availability, or available options and models."
-        }
+        logger.info("Loading transformer models...")
+        self._load_all_models()
+        logger.info("✅ All components initialized successfully!")
     
-    def setup_models(self):
-        """
-        Initialize transformer models for intent classification
-        """
-        try:
-            logger.info("Loading transformer models...")
-            
-            # Use BART for zero-shot classification
-            self.zero_shot_classifier = pipeline(
-                "zero-shot-classification",
-                model="facebook/bart-large-mnli",
-                device=0 if torch.cuda.is_available() else -1
-            )
-            
-            # Use sentence transformer for semantic similarity
-            self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
-            
-            # Use a conversation-aware model for context understanding
-            self.conversation_classifier = pipeline(
-                "text-classification",
-                model="microsoft/DialoGPT-medium",
-                tokenizer="microsoft/DialoGPT-medium",
-                device=0 if torch.cuda.is_available() else -1,
-                return_all_scores=True
-            )
-            
-            logger.info("✅ All transformer models loaded successfully!")
-            
-        except Exception as e:
-            logger.error(f"⚠️ Error loading transformer models: {e}")
-            logger.info("💡 Installing required packages...")
-            self._install_dependencies()
-            
-    def _install_dependencies(self):
-        """Install required packages if not available"""
-        import subprocess
-        import sys
-        
-        packages = [
-            "torch",
-            "transformers",
-            "sentence-transformers", 
-            "scikit-learn",
-            "numpy"
-        ]
-        
-        for package in packages:
+    def _load_all_models(self):
+        """Load all transformer models with error handling"""
+        for name, model in self.models.items():
             try:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-            except subprocess.CalledProcessError:
-                logger.error(f"Failed to install {package}")
+                model.load_model()
+                logger.info(f"✅ {name} model loaded successfully")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to load {name} model: {e}")
+                # Continue with other models
     
-    def preprocess_conversation(self, conversation: List[Dict[str, str]]) -> str:
+    def classify_intent(self, conversation: List[Dict[str, str]]) -> Dict[str, Any]:
         """
-        Convert multi-turn conversation into a comprehensive context string
-        """
-        if not conversation:
-            return ""
+        Main method to classify intent with comprehensive analysis
         
-        # Separate customer and agent messages
-        customer_messages = []
-        agent_messages = []
-        
-        for message in conversation:
-            # Handle different field names (role/sender and message/text)
-            sender = message.get('sender', message.get('role', '')).lower()
-            text = message.get('text', message.get('message', '')).strip()
+        Args:
+            conversation: List of message dictionaries
             
-            if text:  # Only include non-empty messages
-                if sender in ['customer', 'user']:
-                    customer_messages.append(text)
-                elif sender in ['agent', 'assistant', 'support']:
-                    agent_messages.append(text)
-        
-        # Create a comprehensive context
-        context_parts = []
-        
-        # Add customer intent summary
-        if customer_messages:
-            customer_context = " ".join(customer_messages)
-            context_parts.append(f"Customer says: {customer_context}")
-        
-        # Add agent responses for context
-        if agent_messages:
-            agent_context = " ".join(agent_messages[-2:])  # Last 2 agent responses
-            context_parts.append(f"Agent responded: {agent_context}")
-        
-        return " | ".join(context_parts)
-    
-    def classify_with_zero_shot(self, text: str) -> Dict[str, Any]:
-        """
-        Classify intent using zero-shot classification
+        Returns:
+            Comprehensive classification result with reasoning
         """
         try:
-            # Create candidate labels with better descriptions
-            candidate_labels = [
-                "booking appointment scheduling meeting visit",
-                "requesting help support assistance problem issue",
-                "discussing price cost budget negotiation discount",
-                "asking general questions basic information inquiry",
-                "seeking product information features specifications details"
-            ]
+            # 1. Advanced conversation preprocessing
+            conversation_text, conversation_metadata = self.conversation_processor.preprocess_conversation(conversation)
             
-            result = self.zero_shot_classifier(text, candidate_labels)
+            if not conversation_text:
+                return {
+                    "predicted_intent": "General Inquiry",
+                    "confidence": 0.3,
+                    "rationale": "Empty or invalid conversation - defaulted to General Inquiry",
+                    "metadata": conversation_metadata
+                }
             
-            # Map back to intent categories
-            label_mapping = {
-                "booking appointment scheduling meeting visit": "Book Appointment",
-                "requesting help support assistance problem issue": "Support Request",
-                "discussing price cost budget negotiation discount": "Pricing Negotiation",
-                "asking general questions basic information inquiry": "General Inquiry",
-                "seeking product information features specifications details": "Product Information"
-            }
+            # 2. Get predictions from all available models
+            model_predictions = []
             
-            predicted_label = result['labels'][0]
-            predicted_intent = label_mapping.get(predicted_label, "General Inquiry")
+            # Convert model prediction dicts to PredictionResult objects
+            from ensemble import PredictionResult
             
-            return {
-                "predicted_intent": predicted_intent,
-                "confidence": result['scores'][0],
-                "all_scores": {label_mapping.get(label, label): score 
-                             for label, score in zip(result['labels'], result['scores'])},
-                "method": "zero-shot"
-            }
-        except Exception as e:
-            logger.error(f"Zero-shot classification failed: {e}")
-            return None
-    
-    def classify_with_semantic_similarity(self, text: str) -> Dict[str, Any]:
-        """
-        Classify intent using semantic similarity with intent descriptions
-        """
-        try:
-            # Encode the input text
-            text_embedding = self.sentence_model.encode([text])
+            # Zero-shot classification
+            if self.models["zero_shot"].is_loaded:
+                zero_shot_result = self.models["zero_shot"].predict(conversation_text)
+                if zero_shot_result and "error" not in zero_shot_result:
+                    prediction_obj = PredictionResult(
+                        intent=zero_shot_result["predicted_intent"],
+                        confidence=zero_shot_result["confidence"],
+                        method=zero_shot_result["method"],
+                        model_name=zero_shot_result.get("model_name", "facebook/bart-large-mnli"),
+                        all_scores=zero_shot_result["all_scores"]
+                    )
+                    model_predictions.append(prediction_obj)
             
-            # Encode intent descriptions
-            description_embeddings = self.sentence_model.encode(
-                list(self.intent_descriptions.values())
+            # Semantic similarity classification
+            if self.models["semantic"].is_loaded:
+                semantic_result = self.models["semantic"].predict(conversation_text)
+                if semantic_result and "error" not in semantic_result:
+                    prediction_obj = PredictionResult(
+                        intent=semantic_result["predicted_intent"],
+                        confidence=semantic_result["confidence"],
+                        method=semantic_result["method"],
+                        model_name=semantic_result.get("model_name", "all-MiniLM-L6-v2"),
+                        all_scores=semantic_result["all_scores"]
+                    )
+                    model_predictions.append(prediction_obj)
+            
+            # Conversation context classification
+            if self.models["context"].is_loaded:
+                context_result = self.models["context"].predict(conversation_text)
+                if context_result and "error" not in context_result:
+                    prediction_obj = PredictionResult(
+                        intent=context_result["predicted_intent"],
+                        confidence=context_result["confidence"],
+                        method=context_result["method"],
+                        model_name=context_result.get("model_name", "microsoft/DialoGPT-medium"),
+                        all_scores=context_result.get("all_scores", {context_result["predicted_intent"]: context_result["confidence"]})
+                    )
+                    model_predictions.append(prediction_obj)
+            
+            if not model_predictions:
+                from ensemble import PredictionResult
+                return {
+                    "predicted_intent": "General Inquiry",
+                    "confidence": 0.2,
+                    "rationale": "All models failed - using fallback classification",
+                    "metadata": {"conversation_metadata": conversation_metadata, "error": "all_models_failed"}
+                }
+            
+            # 3. Advanced ensemble decision making
+            ensemble_result = self.ensemble_classifier.combine_predictions(
+                model_predictions, conversation_metadata
             )
             
-            # Calculate similarities
-            similarities = cosine_similarity(text_embedding, description_embeddings)[0]
+            # 4. Generate comprehensive reasoning
+            comprehensive_rationale = self.reasoning_engine.generate_comprehensive_reasoning(
+                intent=ensemble_result.intent,
+                confidence=ensemble_result.confidence,
+                conversation_text=conversation_text,
+                conversation_metadata=conversation_metadata,
+                model_predictions=model_predictions,
+                ensemble_metadata=ensemble_result.metadata
+            )
             
-            # Get best match
-            best_match_idx = np.argmax(similarities)
-            intent_names = list(self.intent_descriptions.keys())
-            
+            # 5. Return comprehensive result
             return {
-                "predicted_intent": intent_names[best_match_idx],
-                "confidence": float(similarities[best_match_idx]),
-                "all_scores": {intent: float(sim) for intent, sim in zip(intent_names, similarities)},
-                "method": "semantic_similarity"
+                "predicted_intent": ensemble_result.intent,
+                "confidence": ensemble_result.confidence,
+                "rationale": comprehensive_rationale,
+                "metadata": {
+                    "conversation_metadata": conversation_metadata,
+                    "ensemble_metadata": ensemble_result.metadata,
+                    "model_predictions_count": len(model_predictions),
+                    "conversation_complexity": self._assess_complexity(conversation_metadata),
+                    "confidence_level": ensemble_result.confidence_level.value
+                }
             }
-        except Exception as e:
-            logger.error(f"Semantic similarity classification failed: {e}")
-            return None
-    
-    def ensemble_classification(self, text: str) -> Dict[str, str]:
-        """
-        Combine multiple transformer approaches for robust classification
-        """
-        # Get predictions from different methods
-        zero_shot_result = self.classify_with_zero_shot(text)
-        semantic_result = self.classify_with_semantic_similarity(text)
-        
-        # Decision logic for ensemble
-        final_intent = None
-        final_confidence = 0
-        method_used = "ensemble"
-        
-        if zero_shot_result and semantic_result:
-            # If both methods agree, use that with higher confidence
-            if zero_shot_result['predicted_intent'] == semantic_result['predicted_intent']:
-                final_intent = zero_shot_result['predicted_intent']
-                final_confidence = max(zero_shot_result['confidence'], semantic_result['confidence'])
-                method_used = "consensus"
             
-            # If they disagree, use the one with higher confidence
-            elif zero_shot_result['confidence'] > semantic_result['confidence']:
-                final_intent = zero_shot_result['predicted_intent']
-                final_confidence = zero_shot_result['confidence']
-                method_used = "zero-shot (higher confidence)"
-            else:
-                final_intent = semantic_result['predicted_intent']
-                final_confidence = semantic_result['confidence']
-                method_used = "semantic similarity (higher confidence)"
-        
-        elif zero_shot_result:
-            final_intent = zero_shot_result['predicted_intent']
-            final_confidence = zero_shot_result['confidence']
-            method_used = "zero-shot only"
-        
-        elif semantic_result:
-            final_intent = semantic_result['predicted_intent']
-            final_confidence = semantic_result['confidence']
-            method_used = "semantic similarity only"
-        
-        else:
-            # Fallback to most common intent
-            final_intent = "General Inquiry"
-            final_confidence = 0.5
-            method_used = "fallback"
-        
-        # Generate rationale
-        rationale = self._generate_rationale(final_intent, final_confidence, method_used)
-        
-        return {
-            "predicted_intent": final_intent,
-            "rationale": rationale
-        }
-    
-    def classify_intent(self, conversation: List[Dict[str, str]]) -> Dict[str, str]:
-        """
-        Main method to classify the intent of a multi-turn conversation
-        """
-        # Preprocess conversation
-        text = self.preprocess_conversation(conversation)
-        
-        if not text.strip():
+        except Exception as e:
+            logger.error(f"Error in intent classification: {e}")
             return {
                 "predicted_intent": "General Inquiry",
-                "rationale": "Empty or invalid conversation content"
+                "confidence": 0.1,
+                "rationale": f"Classification failed due to error: {str(e)}",
+                "metadata": {"error": str(e)}
             }
-        
-        # Use ensemble classification
-        return self.ensemble_classification(text)
     
-    def _generate_rationale(self, intent: str, confidence: float, method: str) -> str:
+    def _assess_complexity(self, conversation_metadata: Dict[str, Any]) -> str:
+        """Assess conversation complexity for metadata"""
+        total_turns = conversation_metadata.get("total_turns", 1)
+        evolution = conversation_metadata.get("intent_evolution", {})
+        
+        if total_turns >= 8 or evolution.get("escalation_detected", False):
+            return "high"
+        elif total_turns >= 4 or evolution.get("intent_stability") == "evolving":
+            return "medium"
+        else:
+            return "low"
+    
+    def batch_classify(self, conversations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Generate a detailed rationale for the prediction
+        Classify multiple conversations with progress tracking
+        
+        Args:
+            conversations: List of conversation dictionaries
+            
+        Returns:
+            List of classification results
         """
-        base_rationales = {
-            "Book Appointment": "Customer expressed intent to schedule, book, or arrange a meeting/appointment",
-            "Support Request": "Customer is seeking help, reporting issues, or requesting technical assistance",
-            "Pricing Negotiation": "Customer is discussing, negotiating, or inquiring about costs and pricing", 
-            "General Inquiry": "Customer made general questions or requests for basic information",
-            "Product Information": "Customer is seeking detailed information about products, features, or specifications"
+        results = []
+        
+        for conv in tqdm(conversations, desc="🧠 Classifying intents with advanced AI"):
+            conv_id = conv.get('conversation_id', f"conv_{len(results)+1:03d}")
+            messages = conv.get('messages', [])
+            
+            # Classify intent
+            prediction = self.classify_intent(messages)
+            
+            result = {
+                "conversation_id": conv_id,
+                "predicted_intent": prediction["predicted_intent"],
+                "confidence": prediction["confidence"],
+                "rationale": prediction["rationale"],
+                "metadata": prediction.get("metadata", {})
+            }
+            results.append(result)
+        
+        return results
+    
+    def get_system_info(self) -> Dict[str, Any]:
+        """Get information about the classification system"""
+        return {
+            "system_name": "Modular Transformer Intent Classifier",
+            "version": "2.0",
+            "components": {
+                "conversation_processor": "Advanced multi-turn analysis",
+                "ensemble_classifier": f"Strategy: {self.ensemble_classifier.strategy.value}",
+                "reasoning_engine": f"Depth: {self.reasoning_engine.reasoning_depth.value}",
+                "models": {
+                    name: model.is_loaded for name, model in self.models.items()
+                }
+            },
+            "intent_categories": self.intent_categories,
+            "features": [
+                "Multi-turn conversation analysis",
+                "Intent evolution tracking", 
+                "Advanced ensemble methods",
+                "Comprehensive reasoning generation",
+                "Confidence calibration",
+                "Context-aware processing"
+            ]
         }
-        
-        base_rationale = base_rationales.get(intent, "Intent classified using transformer models")
-        
-        # Add confidence and method information
-        confidence_level = "high" if confidence > 0.7 else "medium" if confidence > 0.5 else "low"
-        
-        return f"{base_rationale}. Classified using {method} with {confidence_level} confidence ({confidence:.2f})"
 
-
-def process_conversations(input_file: str, output_json: str = "predictions.json", output_csv: str = "predictions.csv"):
+def process_conversations(input_file: str, output_json: str = "results/predictions.json", output_csv: str = "results/predictions.csv"):
     """
-    Process conversations from input file and generate predictions
+    Process conversations from input file and generate predictions with advanced analytics
     """
-    logger.info(f"Loading conversations from {input_file}")
+    logger.info(f"📁 Loading conversations from {input_file}")
     
     # Load input data
     with open(input_file, 'r', encoding='utf-8') as f:
@@ -315,63 +276,173 @@ def process_conversations(input_file: str, output_json: str = "predictions.json"
     else:
         conversations = [data]  # Single conversation
     
-    logger.info(f"Found {len(conversations)} conversations")
+    logger.info(f"📊 Found {len(conversations)} conversations to analyze")
     
-    # Initialize classifier
-    classifier = TransformerIntentClassifier()
+    # Initialize advanced classifier system
+    classifier = TransformerIntentClassifier(
+        ensemble_strategy=EnsembleStrategy.ADAPTIVE,
+        reasoning_depth=ReasoningDepth.COMPREHENSIVE
+    )
     
-    # Process each conversation
-    results = []
-    for conv in tqdm(conversations, desc="Classifying intents"):
-        conv_id = conv.get('conversation_id', f"conv_{len(results)+1:03d}")
-        messages = conv.get('messages', [])
-        
-        # Classify intent
-        prediction = classifier.classify_intent(messages)
-        
-        result = {
-            "conversation_id": conv_id,
-            "predicted_intent": prediction["predicted_intent"],
-            "rationale": prediction["rationale"]
+    # Display system information
+    system_info = classifier.get_system_info()
+    logger.info(f"🚀 System: {system_info['system_name']} v{system_info['version']}")
+    logger.info(f"🧠 Models loaded: {sum(system_info['components']['models'].values())}/3")
+    
+    # Process conversations with advanced analytics
+    results = classifier.batch_classify(conversations)
+    
+    # Enhanced results with analytics
+    enhanced_results = []
+    for result in results:
+        enhanced_result = {
+            "conversation_id": result["conversation_id"],
+            "predicted_intent": result["predicted_intent"],
+            "confidence": result["confidence"],
+            "rationale": result["rationale"]
         }
-        results.append(result)
+        
+        # Add confidence level for easy filtering
+        metadata = result.get("metadata", {})
+        confidence_level = metadata.get("confidence_level", "unknown")
+        enhanced_result["confidence_level"] = confidence_level
+        
+        # Add complexity assessment
+        complexity = metadata.get("conversation_complexity", "unknown")
+        enhanced_result["complexity"] = complexity
+        
+        enhanced_results.append(enhanced_result)
     
-    # Save results
-    logger.info(f"Saving results to {output_json} and {output_csv}")
+    # Save comprehensive results
+    logger.info(f"💾 Saving results to {output_json} and {output_csv}")
     
-    # Save JSON
+    # Save detailed JSON with metadata
+    detailed_results = {
+        "system_info": system_info,
+        "analysis_summary": _generate_analysis_summary(results),
+        "predictions": enhanced_results
+    }
+    
     with open(output_json, 'w', encoding='utf-8') as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
+        json.dump(detailed_results, f, indent=2, ensure_ascii=False)
     
-    # Save CSV
-    df = pd.DataFrame(results)
+    # Save clean CSV for spreadsheet analysis
+    df = pd.DataFrame(enhanced_results)
     df.to_csv(output_csv, index=False)
     
-    # Print summary
-    logger.info("Classification Summary:")
-    intent_counts = df['predicted_intent'].value_counts()
-    for intent, count in intent_counts.items():
-        logger.info(f"  {intent}: {count}")
+    # Print comprehensive summary
+    _print_classification_summary(enhanced_results)
     
-    return results
+    return enhanced_results
+
+def _generate_analysis_summary(results: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Generate summary analytics of classification results"""
+    
+    intents = [r["predicted_intent"] for r in results]
+    confidences = [r["confidence"] for r in results]
+    
+    summary = {
+        "total_conversations": len(results),
+        "intent_distribution": {},
+        "confidence_statistics": {
+            "mean": sum(confidences) / len(confidences),
+            "min": min(confidences),
+            "max": max(confidences)
+        },
+        "quality_metrics": {
+            "high_confidence_rate": len([c for c in confidences if c >= 0.7]) / len(confidences),
+            "low_confidence_rate": len([c for c in confidences if c < 0.5]) / len(confidences)
+        }
+    }
+    
+    # Calculate intent distribution
+    from collections import Counter
+    intent_counts = Counter(intents)
+    summary["intent_distribution"] = dict(intent_counts)
+    
+    return summary
+
+def _print_classification_summary(results: List[Dict[str, Any]]):
+    """Print comprehensive classification summary"""
+    
+    logger.info("📈 Classification Summary:")
+    
+    # Intent distribution
+    from collections import Counter
+    intents = [r["predicted_intent"] for r in results]
+    intent_counts = Counter(intents)
+    
+    for intent, count in intent_counts.items():
+        percentage = (count / len(results)) * 100
+        logger.info(f"  {intent}: {count} ({percentage:.1f}%)")
+    
+    # Confidence analysis
+    confidences = [r["confidence"] for r in results]
+    avg_confidence = sum(confidences) / len(confidences)
+    high_conf_count = len([c for c in confidences if c >= 0.7])
+    low_conf_count = len([c for c in confidences if c < 0.5])
+    
+    logger.info(f"📊 Confidence Analysis:")
+    logger.info(f"  Average confidence: {avg_confidence:.3f}")
+    logger.info(f"  High confidence (≥0.7): {high_conf_count}/{len(results)} ({high_conf_count/len(results)*100:.1f}%)")
+    logger.info(f"  Low confidence (<0.5): {low_conf_count}/{len(results)} ({low_conf_count/len(results)*100:.1f}%)")
+    
+    # Complexity analysis
+    if "complexity" in results[0]:
+        complexities = [r["complexity"] for r in results]
+        complexity_counts = Counter(complexities)
+        logger.info(f"🔍 Complexity Distribution:")
+        for complexity, count in complexity_counts.items():
+            logger.info(f"  {complexity.title()}: {count}")
 
 
 def main():
-    """Main entry point"""
-    parser = argparse.ArgumentParser(description="Transformer-based Multi-Turn Intent Classification")
-    parser.add_argument("input_file", help="Path to input JSON file with conversations")
-    parser.add_argument("--output-json", default="predictions.json", help="Output JSON file path")
-    parser.add_argument("--output-csv", default="predictions.csv", help="Output CSV file path")
+    """Enhanced main entry point with comprehensive options"""
+    parser = argparse.ArgumentParser(
+        description="🧠 Advanced Transformer-based Multi-Turn Intent Classification System",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python intent_classifier_transformer.py sample_conversations.json
+  python intent_classifier_transformer.py data.json --output-json results.json --output-csv analysis.csv
+  
+System Features:
+  • Multi-turn conversation analysis with context evolution tracking
+  • Advanced ensemble of 3 transformer models (BART, Sentence-T, DialoGPT)
+  • Intelligent reasoning engine with comprehensive explanations
+  • Adaptive decision making based on conversation characteristics
+  • Confidence calibration and quality assessment
+        """
+    )
+    
+    parser.add_argument("input_file", 
+                       help="Path to input JSON file with conversations")
+    parser.add_argument("--output-json", 
+                       default="results/predictions.json", 
+                       help="Output JSON file path (default: results/predictions.json)")
+    parser.add_argument("--output-csv", 
+                       default="results/predictions.csv", 
+                       help="Output CSV file path (default: results/predictions.csv)")
     
     args = parser.parse_args()
     
     # Validate input file
     if not Path(args.input_file).exists():
-        logger.error(f"Input file not found: {args.input_file}")
+        logger.error(f"❌ Input file not found: {args.input_file}")
         return
     
-    # Process conversations
-    process_conversations(args.input_file, args.output_json, args.output_csv)
+    logger.info("🚀 Starting Advanced Intent Classification Analysis...")
+    
+    # Process conversations with advanced system
+    try:
+        process_conversations(args.input_file, args.output_json, args.output_csv)
+        logger.info("✅ Analysis completed successfully!")
+        logger.info(f"📄 Detailed results saved to: {args.output_json}")
+        logger.info(f"📊 Summary table saved to: {args.output_csv}")
+        
+    except Exception as e:
+        logger.error(f"❌ Analysis failed: {e}")
+        raise
 
 
 if __name__ == "__main__":

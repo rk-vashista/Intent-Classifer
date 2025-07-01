@@ -55,18 +55,22 @@ pip install -r requirements.txt
 ### Step 3: Verify Installation
 ```bash
 # Test the installation with sample data
-python intent_classifier_transformer.py sample_conversations.json
+python intent_classifier_transformer.py data/sample_conversations.json
 ```
 
 ## 🚀 How to Run
 
 ### Basic Usage
 ```bash
-# Run with default settings
-python intent_classifier_transformer.py sample_conversations.json
+# Run with sample data
+python intent_classifier_transformer.py data/sample_conversations.json
 
-# Specify custom output files
-python intent_classifier_transformer.py input.json --output-json results.json --output-csv results.csv
+# Specify custom output files  
+python intent_classifier_transformer.py data/input.json --output-json results/my_results.json --output-csv results/my_results.csv
+
+# Run demonstration scripts
+python run_demos.py
+```
 ```
 
 ### Python API
@@ -363,16 +367,41 @@ For production deployment, consider:
 4. **Scaling**: Use multiple GPU instances for high-volume processing
 5. **Feedback Loop**: Collect human feedback to improve accuracy
 
-## 📁 Project Files
+## 📁 Project Structure
 
-- `intent_classifier_transformer.py` - Main transformer-based classifier
-- `intent_classifier.py` - Legacy rule-based classifier (for comparison)
-- `demo_comparison.py` - Side-by-side comparison script
-- `sample_conversations.json` - Test data with 5 example conversations
-- `requirements.txt` - Python dependencies
-- `predictions_transformer.json` - Sample transformer results
-- `TRANSFORMER_COMPARISON.md` - Detailed technical comparison
-- `PROJECT_SUMMARY.md` - Complete project overview
+```
+NLP/
+├── 🔧 Core System
+│   ├── intent_classifier_transformer.py  # Main application  
+│   ├── models.py                         # Transformer models
+│   ├── conversation_processor.py         # Multi-turn analysis
+│   ├── ensemble.py                       # Model combination
+│   └── reasoning_engine.py               # Explanation generation
+│
+├── 📊 Data & Results
+│   ├── data/
+│   │   └── sample_conversations.json     # Test conversations
+│   └── results/
+│       ├── comprehensive_analysis.json   # Complete analysis
+│       ├── modular_results.json         # Latest predictions
+│       └── *.csv                        # Spreadsheet exports
+│
+├── 🚀 Scripts & Demos
+│   ├── scripts/
+│   │   ├── comprehensive_demo.py         # Full system demo
+│   │   └── demo_comparison.py            # Performance comparison
+│   └── run_demos.py                      # Script runner
+│
+├── 📚 Documentation
+│   ├── README.md                         # Complete guide
+│   ├── PROJECT_SUMMARY.md               # Overview
+│   └── TRANSFORMER_COMPARISON.md        # Technical analysis
+│
+└── ⚙️ Configuration
+    ├── requirements.txt                  # Dependencies
+    ├── .gitignore                       # Git configuration
+    └── .venv/                           # Virtual environment
+```
 
 ## 🤝 Contributing
 
@@ -388,4 +417,4 @@ MIT License - see LICENSE file for details.
 
 ---
 
-**Ready to get started?** Run `python intent_classifier_transformer.py sample_conversations.json` to see the transformer-based classification in action!
+**Ready to get started?** Run `python intent_classifier_transformer.py data/sample_conversations.json` to see the transformer-based classification in action!
