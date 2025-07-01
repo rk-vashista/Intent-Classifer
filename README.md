@@ -693,7 +693,6 @@ graph TD
     C --> F
     D --> B
     E --> B
-    H[comprehensive_demo.py] --> A
 ```
 
 #### Adding New Intent Categories
